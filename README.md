@@ -108,14 +108,3 @@ kubectl apply -f kubernetes/mendix-deployment.yaml
 ```
 
 필요에 따라 ConfigMap을 사용하여 민감하지 않은 설정들을 관리할 수도 있습니다.
-
-
-### 6. 테스트
-
-프로젝트에는 통합 테스트 스크립트가 포함되어 있습니다:
-
-```bash
-bash tests/integrationtest.sh
-```
-
-이 스크립트는 빌드팩의 기능을 테스트하는 데 사용될 수 있습니다.
