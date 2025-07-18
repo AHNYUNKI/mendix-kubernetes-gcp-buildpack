@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mendix-app
+  labels:
+    app: mendix
+spec:
+  replicas: 1 # 필요에 따라 복제본 수를 조절하세요.
+  selector:
+    matchLabels:
+      app: mendix
+  template:
+    metadata:
+      labels:
+        app: mendix
+    spec:
+      containers:
+      - name: mendix-app
+        image: gcr.io/electric-block-466106-k6/mendix-app:latest # Cloud Build에서 빌드될 이미지 경로
+        ports:
+        - containerPort: 8080 # Mendix 애플리케이션의 기본 포트
+        env: # 환경 변수는 Secret 또는 ConfigMap으로 관리하는 것이 좋습니다.
+        - name: DATABASE_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: mendix-db-secret
+              key: DATABASE_ENDPOINT
+        - name: DATABASE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mendix-db-secret
+              key: DATABASE_USERNAME
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mendix-db-secret
+              key: DATABASE_PASSWORD
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mendix-db-secret
+              key: ADMIN_PASSWORD
+        # 여기에 Mendix 애플리케이션에 필요한 다른 환경 변수를 추가하세요.
+        # 예를 들어, M2EE_ADMIN_PASS, M2EE_RUNTIME_PORT 등
+        # resources: # 필요에 따라 리소스 제한을 설정하세요.
+        #   requests:
+        #     memory: "512Mi"
+        #     cpu: "500m"
+        #   limits:
+        #     memory: "1Gi"
+        #     cpu: "1"

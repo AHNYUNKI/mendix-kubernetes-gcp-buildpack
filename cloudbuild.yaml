@@ -1,0 +1,51 @@
+steps:
+  # 1. builder rootfs 이미지 빌드 (BuildKit 활성화)
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-builder-rootfs'
+    args: ['build', '-t', 'mendix-rootfs:builder', '-f', 'rootfs-builder.dockerfile', '.']
+    env: ['DOCKER_BUILDKIT=1']
+
+  # 2. app rootfs 이미지 빌드 (BuildKit 활성화)
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-app-rootfs'
+    args: ['build', '-t', 'mendix-rootfs:app', '-f', 'rootfs-app.dockerfile', '.']
+    env: ['DOCKER_BUILDKIT=1']
+
+  # 3. Mendix 빌드 파일 생성
+  - name: 'python:3.9-slim'
+    entrypoint: 'python'
+    args: [ 'build.py', '--source', './test-project.mda', '--destination', './output-mda-dir', 'build-mda-dir' ]
+    wait_for: ['build-builder-rootfs', 'build-app-rootfs']
+
+  # 4. 최종 Mendix 애플리케이션 이미지 빌드 (BuildKit 활성화)
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: 'output-mda-dir'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/mendix-app:latest', '.']
+    env: ['DOCKER_BUILDKIT=1']
+
+  # 5. 빌드된 이미지를 Artifact Registry에 푸시 (GKE에서 사용 가능하도록)
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/mendix-app:latest']
+
+  # 6. GKE 클러스터에 배포
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud container clusters get-credentials $_GKE_CLUSTER_NAME --region $_GKE_CLUSTER_REGION --project $PROJECT_ID
+        kubectl apply -f kubernetes/mendix-deployment.yaml
+        kubectl apply -f kubernetes/mendix-service.yaml
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=$_GKE_CLUSTER_REGION'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=$_GKE_CLUSTER_NAME'
+
+# 빌드된 이미지를 Artifact Registry에 저장
+images:
+  - 'gcr.io/$PROJECT_ID/mendix-app:latest'
+
+# 대체 변수 정의
+# 빌드 시 --substitutions 플래그를 사용하여 이 변수들의 값을 전달해야 합니다.
+substitutions:
+  _GKE_CLUSTER_NAME: 'mendix-cluster'
+  _GKE_CLUSTER_REGION: 'asia-south1'

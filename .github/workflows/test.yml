@@ -1,0 +1,23 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Test
+
+on:
+  push:
+    branches: [ latest ]
+  pull_request:
+    branches: [ latest ]
+
+jobs:
+
+  test-ubi9:
+    name: Test with a ubi9 rootfs
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+
+      # Run the integration test script
+      - name: Run integration tests
+        run: sh tests/integrationtest.sh
