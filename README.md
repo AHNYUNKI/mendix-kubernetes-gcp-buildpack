@@ -21,7 +21,19 @@
 ## 사용 방법
 
 
-### 1. 환경 변수 설정 및 Secret 관리
+### 1. Google Cloud Project ID 확인
+
+Cloud Build 및 GKE 배포를 위해 현재 GCP 프로젝트 ID를 확인합니다.
+
+```bash
+gcloud config get-value project
+```
+
+### 2. Mendix 애플리케이션 준비
+
+배포하려는 Mendix 애플리케이션의 `.mda` 파일을 프로젝트 루트 디렉토리에 준비합니다. 예시로 `test-project.mda` 파일이 포함되어 있습니다.
+
+### 3. 환경 변수 설정 및 Secret 관리
 
 Mendix 애플리케이션은 데이터베이스 연결 정보, 관리자 비밀번호 등 다양한 환경 변수를 필요로 합니다. 민감한 정보를 코드에 직접 노출하는 대신, Kubernetes Secret을 사용하여 안전하게 관리하는 것이 권장됩니다.
 
@@ -51,21 +63,9 @@ kubectl apply -f kubernetes/mendix-deployment.yaml
 
 필요에 따라 ConfigMap을 사용하여 민감하지 않은 설정들을 관리할 수도 있습니다.
 
-### 2. Google Cloud Project ID 확인
-
-Cloud Build 및 GKE 배포를 위해 현재 GCP 프로젝트 ID를 확인합니다.
-
-```bash
-gcloud config get-value project
-```
-
-### 3. Mendix 애플리케이션 준비
-
-배포하려는 Mendix 애플리케이션의 `.mda` 파일을 프로젝트 루트 디렉토리에 준비합니다. 예시로 `test-project.mda` 파일이 포함되어 있습니다.
-
 ### 4. Cloud Build를 통한 빌드 및 배포
 
-`cloudbuild.yaml` 파일은 Mendix 애플리케이션을 빌드하고 GKE에 배포하는 전체 워크플로우를 정의합니다. 다음 명령어를 사용하여 Cloud Build를 실행합니다. **아래 명령어의 `$PROJECT_ID`, `_GKE_CLUSTER_NAME`, `_GKE_CLUSTER_REGION` 값은 사용자의 환경에 맞게 변경해야 합니다.**
+`cloudbuild.yaml` 파일은 Mendix 애플리케이션을 빌드하고 GKE에 배포하는 전체 워크플로우를 정의합니다. 다음 명령어를 사용하여 Cloud Build를 실행합니다. **아래 명령어의 `_GKE_CLUSTER_NAME`, `_GKE_CLUSTER_REGION` 값은 사용자의 환경에 맞게 변경해야 합니다.**
 
 ```bash
 gcloud builds submit . \
@@ -73,9 +73,11 @@ gcloud builds submit . \
   --substitutions=_GKE_CLUSTER_NAME=YOUR_GKE_CLUSTER_NAME,_GKE_CLUSTER_REGION=YOUR_GKE_CLUSTER_REGION
 ```
 
+참고: `gcloud builds submit` 명령어는 현재 GCP 프로젝트의 컨텍스트에서 실행되므로, `$PROJECT_ID`는 Cloud Build에 의해 자동으로 사용됩니다. 따라서 `--substitutions`에 `$PROJECT_ID`를 명시적으로 포함할 필요가 없습니다.
+
 *   `_GKE_CLUSTER_NAME`: 배포할 GKE 클러스터의 이름 (예: `mendix-cluster`)
+
 *   `_GKE_CLUSTER_REGION`: GKE 클러스터가 위치한 리전 (예: `asia-south1`)
-*   `$PROJECT_ID`: 사용자의 Google Cloud Project ID (위에서 확인한 값)
 
 
 이 명령어는 다음 단계를 수행합니다:
